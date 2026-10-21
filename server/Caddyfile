@@ -1,0 +1,15 @@
+# Only the MCP endpoint and the health check are exposed. /metrics and the landing page are not.
+# estonian-mcp itself checks the bearer token (ESTNLTK_MCP_AUTH_TOKEN) on /mcp.
+{$DOMAIN} {
+	encode gzip
+	@allowed path /mcp /mcp/ /health
+	handle @allowed {
+		reverse_proxy estonian-mcp:8081
+	}
+	handle {
+		respond 404
+	}
+	log {
+		output discard
+	}
+}

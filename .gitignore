@@ -1,0 +1,23 @@
+# secrets
+.env
+*.env
+!.env.example
+server/.env
+# python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+# local estonian-mcp checkout / models if placed inside the repo
+estonian-mcp/
+models/
+nltk_data/
+# local working files
+briefs/
+*.local.md
+client-profiles/
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

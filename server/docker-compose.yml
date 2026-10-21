@@ -1,0 +1,44 @@
+# Self-hosted estonian-mcp over streamable HTTP behind Caddy (automatic HTTPS) with a bearer token.
+#
+#   cp .env.example .env    # set DOMAIN and a long random ESTNLTK_MCP_AUTH_TOKEN
+#   docker compose up -d --build
+#
+# The estonian-mcp container sits only on an `internal` network: it can talk to Caddy but has
+# no route to the internet, so it cannot make outbound calls at runtime.
+services:
+  estonian-mcp:
+    build: .
+    image: estonian-mcp:a496fc6
+    command: ["--transport", "http", "--host", "0.0.0.0", "--port", "8081"]
+    environment:
+      ESTNLTK_MCP_AUTH_TOKEN: ${ESTNLTK_MCP_AUTH_TOKEN:?set ESTNLTK_MCP_AUTH_TOKEN in .env}
+      ESTNLTK_MCP_TRUSTED_PROXY_HOPS: "1"
+      ESTNLTK_MCP_DOMAIN_GLOSSARY: /glossary/glossary.txt
+    volumes:
+      - ../references/glossary-ecommerce.txt:/glossary/glossary.txt:ro
+    networks: [mcp_internal]
+    tmpfs: [/tmp]
+    # Not read_only: EstNLTK's WordNet writes a SQLite journal next to its database.
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env}
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks: [mcp_internal, public]
+    depends_on: [estonian-mcp]
+    restart: unless-stopped
+
+networks:
+  mcp_internal:
+    internal: true
+  public: {}
+
+volumes:
+  caddy_data: {}
+  caddy_config: {}
