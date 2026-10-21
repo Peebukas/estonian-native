@@ -87,11 +87,42 @@ Your own HTTPS server with a bearer token:
 
 Set `ESTONIAN_MCP_TOKEN` in the environment Cursor is launched from; do not paste the token into the file.
 
+### Codex CLI
+
+Local stdio (Linux example):
+
+```sh
+codex mcp add estonian-mcp -- /usr/bin/unshare -rn ~/estonian-mcp/.venv/bin/python ~/estonian-mcp/server.py --transport stdio
+```
+
+Self-hosted server with bearer authentication:
+
+```sh
+export ESTONIAN_MCP_TOKEN='<token-from-env-file>'
+codex mcp add estonian-mcp --url https://<DOMAIN>/mcp --bearer-token-env-var ESTONIAN_MCP_TOKEN
+```
+
+or in `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.estonian-mcp]
+url = "https://<DOMAIN>/mcp"
+bearer_token_env_var = "ESTONIAN_MCP_TOKEN"
+```
+
+`bearer_token_env_var` holds the *name* of the environment variable, not the token itself. The ChatGPT desktop app and Codex IDE extension also read this config file. See [server/README.md](server/README.md) for Apache + systemd deployment.
+
 ### ChatGPT (custom connector)
 
 ChatGPT on the web reaches MCP servers through a custom connector in **developer mode** (streamable HTTP over HTTPS only; it cannot start a local stdio process). Add an app/connector with your server URL `https://<your-domain>/mcp`, then select it in the conversation.
 
-Authentication: ChatGPT's web connectors support OAuth, no authentication, or mixed. They cannot send a static bearer token, so a token-protected server from `server/` needs an OAuth front end (upstream's `deploy/` stack has one) or a client that can send headers. Only use "no authentication" for a server that handles public text. Menu names change often; follow OpenAI's [developer mode help article](https://help.openai.com/en/articles/12584461-developer-mode-and-mcp-apps-in-chatgpt).
+**Important:** ChatGPT custom MCP connectors support only **OAuth 2.0 or no authentication**. They cannot send a static bearer token (`Authorization: Bearer <token>`). In OpenAI's own words from their [authentication documentation](https://platform.openai.com/docs/actions/authentication), ChatGPT "cannot present custom API keys" and does not support machine-to-machine OAuth grants. So:
+
+- ✅ You can use a server with **no authentication** for public text
+- ❌ You **cannot** connect ChatGPT web to a self-hosted server that requires a static bearer token
+- ✅ Use the **ChatGPT desktop app** or **Codex** instead for bearer-authenticated servers (see the Codex section above)
+
+Menu names change often; follow OpenAI's current [developer mode help article](https://help.openai.com/en/articles/12584461-developer-mode-and-mcp-apps-in-chatgpt) and [Custom Actions documentation](https://platform.openai.com/docs/actions) for the exact path.
 
 ### Without an MCP connection
 

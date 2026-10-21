@@ -1,36 +1,70 @@
-# systemd unit: estonian-mcp over HTTP on 127.0.0.1:8081 for a reverse proxy on the same host,
-# with outbound network blocked by systemd's IP firewall.
-#
-# Assumes a source install in /opt/estonian-mcp (see server/README.md, "Source install").
-# Create the user:  sudo useradd --system --home /opt/estonian-mcp --shell /usr/sbin/nologin estonian-mcp
-# Put the token in /etc/estonian-mcp.env (mode 600):  ESTNLTK_MCP_AUTH_TOKEN=...
 [Unit]
-Description=estonian-mcp (Estonian NLP MCP server, HTTP on localhost)
-After=network.target
+Description=Estonian MCP server
+Documentation=https://github.com/silly-geese/estonian-mcp
+After=network-online.target
+Wants=network-online.target
 
 [Service]
-Type=simple
+Type=exec
 User=estonian-mcp
 Group=estonian-mcp
-EnvironmentFile=/etc/estonian-mcp.env
-Environment=ESTNLTK_MCP_FASTTEXT_PATH=/opt/estonian-mcp/models/fasttext-et-medium
-Environment=ESTNLTK_MCP_DOMAIN_GLOSSARY=/opt/estonian-mcp/glossary/glossary-ecommerce.txt
-Environment=ESTNLTK_MCP_TRUSTED_PROXY_HOPS=1
-Environment=ESTNLTK_MCP_METRICS_PATH=/tmp/estonian-mcp-metrics.json
-ExecStart=/opt/estonian-mcp/.venv/bin/python /opt/estonian-mcp/server.py --transport http --host 127.0.0.1 --port 8081
-# No outbound network: only loopback is reachable.
+EnvironmentFile=/etc/estonian-mcp/estonian-mcp.env
+
+# Use python3 from the venv's bin/ directory
+# This automatically resolves to the correct Python version (3.10, 3.11, 3.12 or 3.13)
+# and is portable across distributions
+ExecStart=/opt/estonian-mcp/venv/bin/python3 \
+  /opt/estonian-mcp/app/server.py \
+  --transport http \
+  --host 127.0.0.1 \
+  --port 8081
+
+Restart=on-failure
+RestartSec=5s
+TimeoutStartSec=60s
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+CapabilityBoundingSet=
+SystemCallArchitectures=native
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+UMask=0077
+MemoryMax=4G
+
+# Network isolation: service can only talk to loopback
 IPAddressDeny=any
 IPAddressAllow=localhost
-RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
-# Hardening
-NoNewPrivileges=yes
-ProtectSystem=strict
-ProtectHome=yes
-PrivateTmp=yes
-# WordNet writes a SQLite journal next to its DB; give the service user write access there:
-#   sudo chown -R estonian-mcp: /opt/estonian-mcp/.venv/lib/python3.13/site-packages/estnltk/estnltk_resources
-ReadWritePaths=/opt/estonian-mcp/.venv/lib/python3.13/site-packages/estnltk/estnltk_resources
-Restart=on-failure
+
+# State and cache directories
+# StateDirectory creates /var/lib/estonian-mcp automatically (portable)
+# CacheDirectory creates /var/cache/estonian-mcp automatically (portable)
+StateDirectory=estonian-mcp
+CacheDirectory=estonian-mcp
+
+# Allow writes to NLTK and model directories
+ReadWritePaths=/opt/estonian-mcp/venv/nltk_data
+ReadWritePaths=/opt/estonian-mcp/models
+
+# Runtime directory for temporary files
+RuntimeDirectory=estonian-mcp
+
+# Read-only access to application code and configuration
+ReadOnlyPaths=/opt/estonian-mcp/app
+ReadOnlyPaths=/etc/estonian-mcp
 
 [Install]
 WantedBy=multi-user.target
