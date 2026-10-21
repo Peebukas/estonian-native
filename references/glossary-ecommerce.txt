@@ -1,0 +1,36 @@
+# Estonian e-commerce / web-agency glossary for estonian-mcp (ESTNLTK_MCP_DOMAIN_GLOSSARY).
+# One preferred term (lemma) per line. Text after # is ignored by the server.
+# Copy this file and add your client's own terms and product names.
+e-pood
+veebileht
+alamleht
+arendus
+arendustöö
+e-poe arendus
+hooldus
+hoolduspakett
+hooldusleping
+versiooniuuendus
+turvauuendus
+turvaparandus
+liidestus
+liidestamine
+ostu vormistamine
+ostukorv
+tellimus
+tellimuse vormistamine
+makseviis
+tarneviis
+moodul
+moodularendus
+automatiseerimine
+digitöötaja
+laoseis
+tootekataloog
+hinnapakkumine
+töö maht
+tutvumisvestlus
+ärieesmärk
+veebiarendus
+serverihaldus
+kiirusoptimeerimine

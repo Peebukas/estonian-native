@@ -1,0 +1,36 @@
+# systemd unit: estonian-mcp over HTTP on 127.0.0.1:8081 for a reverse proxy on the same host,
+# with outbound network blocked by systemd's IP firewall.
+#
+# Assumes a source install in /opt/estonian-mcp (see server/README.md, "Source install").
+# Create the user:  sudo useradd --system --home /opt/estonian-mcp --shell /usr/sbin/nologin estonian-mcp
+# Put the token in /etc/estonian-mcp.env (mode 600):  ESTNLTK_MCP_AUTH_TOKEN=...
+[Unit]
+Description=estonian-mcp (Estonian NLP MCP server, HTTP on localhost)
+After=network.target
+
+[Service]
+Type=simple
+User=estonian-mcp
+Group=estonian-mcp
+EnvironmentFile=/etc/estonian-mcp.env
+Environment=ESTNLTK_MCP_FASTTEXT_PATH=/opt/estonian-mcp/models/fasttext-et-medium
+Environment=ESTNLTK_MCP_DOMAIN_GLOSSARY=/opt/estonian-mcp/glossary/glossary-ecommerce.txt
+Environment=ESTNLTK_MCP_TRUSTED_PROXY_HOPS=1
+Environment=ESTNLTK_MCP_METRICS_PATH=/tmp/estonian-mcp-metrics.json
+ExecStart=/opt/estonian-mcp/.venv/bin/python /opt/estonian-mcp/server.py --transport http --host 127.0.0.1 --port 8081
+# No outbound network: only loopback is reachable.
+IPAddressDeny=any
+IPAddressAllow=localhost
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+# Hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+# WordNet writes a SQLite journal next to its DB; give the service user write access there:
+#   sudo chown -R estonian-mcp: /opt/estonian-mcp/.venv/lib/python3.13/site-packages/estnltk/estnltk_resources
+ReadWritePaths=/opt/estonian-mcp/.venv/lib/python3.13/site-packages/estnltk/estnltk_resources
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
